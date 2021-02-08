@@ -52,7 +52,7 @@ function parseAudio(url){
 function buildVCache(ms){
   VCacheStart = ms = Math.max(0, Math.floor(ms-height*z));
   const raw = audioBuffer.getChannelData(0);
-  const blockSize = (audioBuffer.sampleRate / (1000*z))|0;
+  const blockSize = (audioBuffer.sampleRate / (1000/z))|0;
   const start = Math.floor(audioBuffer.sampleRate * ms / 1000 / blockSize)*blockSize;
   for(let i = 0; i < VCache.length; i ++){
     let sum = 0;
@@ -97,7 +97,7 @@ function setup(){
   textAlign(CENTER, CENTER);
   rectMode(CENTER);
   drawingContext.imageSmoothingEnabled = false;
-  yo = Math.max(height - 100, height - height/4)|0;
+  yo = Math.min(height - 100, height - (height>>3))|0;
 }
 function keyPressed(){
   if(!songAudio) return;
@@ -136,6 +136,6 @@ function draw(){
   noStroke();
   fill(0);
   text([~~frameRate(), currentTime, (currentTime-VImageStart)/z, z, VCacheStart, VCacheEnd, VImageStart, VImageEnd].join('\n'), 800,600);
-  text('fps\nt=\nwaveform pos\nz=\nVCache LowerBound\nVCache UpperBound\nVImage LowerBound\nVImage UpperBound', 700, 600);
-  rect(100, height-98, 200, 4);
+  text('fps\nt=\nwaveform pos\nms/px (z)\nVCache LowerBound\nVCache UpperBound\nVImage LowerBound\nVImage UpperBound', 700, 600);
+  rect(100, yo+2, 200, 4);
 }
