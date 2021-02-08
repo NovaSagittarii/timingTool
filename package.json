@@ -1,0 +1,17 @@
+{
+  "name": "timingtool",
+  "version": "1.0.0",
+  "description": "timing tool for mania and idk im bored haha",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "NovaSagittarii",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^11.2.3"
+  },
+  "dependencies": {
+    "electron-prompt": "^1.6.1"
+  }
+}
