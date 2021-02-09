@@ -4,7 +4,7 @@ ipcRenderer.on('DIR', (e, d) => PATH = d);
 ipcRenderer.on('IMPORT', (e, d) => parse(d));
 // ipcRenderer.on('AUDIO', (e, d) => parseAudio(d));
 
-const ac = new (window.AudioContext || window.webkitAudioContext)();
+const ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
 let songAudio, audioBuffer;
 let currentTime, mouseTime;
 let d = 2;      // divisor
@@ -43,8 +43,7 @@ function parseAudio(url){
     .then(arrayBuffer => ac.decodeAudioData(arrayBuffer))
     .then(audioBuffer_ => {
       audioBuffer = audioBuffer_;
-      buildVCache(0);
-      buildVImage(0);
+      buildWaveform(0);
       loop();
     });
   // https://css-tricks.com/making-an-audio-waveform-visualizer-with-vanilla-javascript/ actual godsend
@@ -59,19 +58,19 @@ function buildVCache(ms){
     for(let j = 0; j < blockSize; j ++) sum += Math.abs(raw[start + i*blockSize+j])
     VCache[i] = sum / blockSize * 65535;
   }
-  VCacheEnd = VCacheStart + (VCache.length - 2*height)*z;
+  VCacheEnd = VCacheStart + (VCache.length - 3*height)*z;
   console.log("cache built", VCacheStart, currentTime, VCacheEnd);
 }
 function buildVImage(ms, k){
   k = k || 1;
 /* TODO: probably could optimize by using 3 images instead of one big one but that requires EFFORT */
-  VImageStart = (ms = Math.max(0, Math.floor(ms-height*z)));
   if(ms < VCacheStart || ms > VCacheEnd) buildVCache(ms);
+  VImageStart = (ms = Math.max(0, Math.floor(ms-height*z)));
   const img = createImage(100, height*3);
   const c = color(0, 90, 102);
   img.loadPixels();
   let y = img.height;
-  const start = (ms-VCacheStart)/z;
+  const start = Math.floor((ms-VCacheStart)/z);
   for(let i = 0; i < height*3; i ++, y --)
     for(let x = Math.min(img.width, (k*VCache[start+i]/65535*200)|0); x >= 0; x --)
       img.set(x, y, c);
@@ -81,7 +80,7 @@ function buildVImage(ms, k){
   VImageEnd = VImageStart + 2*height*z;
   console.log('image created', VImageStart, currentTime, VImageEnd);
 }
-function rebuildWaveform(ms, k){
+function buildWaveform(ms, k){
   buildVCache(ms);
   buildVImage(ms, k || 1);
 }
@@ -98,6 +97,8 @@ function setup(){
   rectMode(CENTER);
   drawingContext.imageSmoothingEnabled = false;
   yo = Math.min(height - 100, height - (height>>3))|0;
+
+  console.log("AC Base latency %sms", (ac.baseLatency*1000)|0);
 }
 function keyPressed(){
   if(!songAudio) return;
@@ -111,14 +112,15 @@ function keyPressed(){
       break;
     case 187: // = [+]
       z /= 2;
-      rebuildWaveform(songAudio.currentTime);
+      buildWaveform(currentTime);
       break;
     case 189: // -
       z *= 2;
-      rebuildWaveform(songAudio.currentTime);
+      buildWaveform(currentTime);
       break;
   }
 }
+let VImagePos;
 function draw(){
   if(!songAudio) return noLoop();
   currentTime = (songAudio.currentTime*1000)|0;
@@ -126,16 +128,16 @@ function draw(){
 
   if(currentTime < VImageStart || currentTime > VImageEnd) buildVImage(currentTime);
   push();
-  translate(50, yo+(currentTime-VImageStart)/z - height*1.5);
+  translate(50, VImagePos = (yo+(currentTime-VImageStart)/z - height*1.5)|0);
   scale(-1, 1);
   image(VImage, 0, 0);
   pop();
-  image(VImage, 150, yo+(currentTime-VImageStart)/z - height*1.5);
+  image(VImage, 150, VImagePos);
 
 
   noStroke();
   fill(0);
-  text([~~frameRate(), currentTime, (currentTime-VImageStart)/z, z, VCacheStart, VCacheEnd, VImageStart, VImageEnd].join('\n'), 800,600);
+  text([frameRate()|0, currentTime, VImagePos, z, VCacheStart, VCacheEnd, VImageStart, VImageEnd].join('\n'), 800,600);
   text('fps\nt=\nwaveform pos\nms/px (z)\nVCache LowerBound\nVCache UpperBound\nVImage LowerBound\nVImage UpperBound', 700, 600);
   rect(100, yo+2, 200, 4);
 }
