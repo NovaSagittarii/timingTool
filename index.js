@@ -43,6 +43,7 @@ function createWindow () {
             selectOptions: files,
           }).then(d => {
             mainWindow.webContents.send('DIR', dir);
+            mainWindow.webContents.send('TITLE', files[d]);
             mainWindow.webContents.send('IMPORT', fs.readFileSync(path.join(dir, files[d]), 'utf8'));
           });
         })
